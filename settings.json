@@ -1,0 +1,34 @@
+{
+  "id": 1,
+  "server": {
+    "init_timeout": 10,
+    "url": "46.138.248.205:4222"
+  },
+  "database": {
+    "url": "sqlite+aiosqlite:///database.sqlite"
+  },
+  "selenium": {
+    "chromedriver_path": "chromedriver",
+    "chromedriver_data_dir": "chromedriver_data",
+    "log_in_timeout": 90
+  },
+  "parser": {
+    "url": "https://web.whatsapp.com/send?phone={0}",
+    "batch_size": 2,
+    "wait_interval": 5,
+    "webdriver_timeout": 10,
+    "photos_dir": "photos"
+  },
+  "logging": {
+    "level": "DEBUG",
+    "format": "%(asctime)s - %(name)-12s - %(levelname)-8s - %(message)s",
+    "datefmt": "%Y-%m-%d %H:%M:%S",
+    "ignored": [
+      "aiosqlite",
+      "aiogram.dispatcher",
+      "multipart",
+      "urllib3",
+      "selenium"
+    ]
+  }
+}

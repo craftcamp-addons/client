@@ -1,0 +1,10 @@
+venv
+.idea
+__pycache__
+*_data
+photos
+chromedriver*
+*.zip
+*.sqlite
+# Ignore dynaconf secret files
+.secrets.*

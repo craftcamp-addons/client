@@ -1,0 +1,12 @@
+SQLAlchemy~=2.0.4
+lz4~=4.3.2
+ormsgpack~=1.2.5
+dynaconf~=3.1.11
+pydantic~=1.10.5
+nats-py
+selenium~=4.8.2
+aiofiles~=23.1.0
+Pillow~=9.4.0
+alembic~=1.9.4
+aiosqlite
+aiosqlite3
