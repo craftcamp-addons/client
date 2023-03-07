@@ -31,6 +31,7 @@ class BaseLogInImpl(Protocol):
 class Parser:
     parser: BaseParserImpl
     user_logger: BaseLogInImpl
+    sender: SenderService
 
     webdriver: webdriver.Chrome
 
@@ -43,11 +44,13 @@ class Parser:
                 options.add_argument('--disable-dev-shm-usage')
             options.add_argument('--allow-profiles-outside-user-dir')
             options.add_argument('--enable-profile-shortcut-manager')
-            options.add_argument(f'--user-data-dir={Path(settings.selenium.chromedriver_data_dir) / "user"}')
+            chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_data_dir).absolute()
+            options.add_argument(f'--user-data-dir={chromedriver_data_dir / "user"}')
             options.add_argument('--profile-directory=Profile 1')
 
-            self.webdriver = webdriver.Chrome(settings.selenium.chromedriver_path if platform != 'win32' else
-                                              settings.selenium.chromedriver_path + ".exe", options=options)
+            chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_path).absolute()
+            self.webdriver = webdriver.Chrome(chromedriver_data_dir if platform != 'win32' else
+                                              str(chromedriver_data_dir) + ".exe", options=options)
         except WebDriverException as e:
             logger.error(e)
             raise RuntimeError("Не удалось запустить chromedriver")
@@ -63,27 +66,20 @@ class Parser:
     def set_user_logger(self, user_logger: BaseLogInImpl):
         self.user_logger = user_logger
 
-    @property
-    async def current_batch_count(self) -> int:
-        async with get_session() as session:
-            return (await session.execute(
-                select(func.count().label('count')).select_from(Number).where(
-                    Number.status == NumberStatus.COMPLETED))).scalar_one()
+    def set_sender(self, sender: SenderService):
+        self.sender = sender
 
     async def parse(self):
         async with get_session() as session:
             try:
-                batch_limit = settings.parser.batch_size
-                logger.info("Парсинг следующей пачки...")
-
                 while not self.whatsapp_logged_in:
                     logger.info("Пользователь не авторизован. Ожидаю авторизацию...")
                     self.whatsapp_logged_in = await self.user_logger.log_in(settings.selenium.log_in_timeout)
 
-                actual_numbers: list[Number] = await get_actual_numbers(session, batch_limit)
+                actual_numbers: list[Number] = await get_actual_numbers(session, 3)
                 while len(actual_numbers) == 0:
                     logger.info("Ожидается следующая пачка...")
-                    actual_numbers = await get_actual_numbers(session, batch_limit)
+                    actual_numbers = await get_actual_numbers(session, 3)
                     await asyncio.sleep(settings.parser.wait_interval)
 
                 for number in actual_numbers:
@@ -94,16 +90,10 @@ class Parser:
                 logger.error(e)
                 await session.rollback()
 
-    async def start_parsing(self, nc: Client, sender: SenderService):
+    async def start_parsing(self):
         while True:
             try:
-                batch_count = await self.current_batch_count
-                if batch_count >= settings.parser.batch_size:
-                    logger.info(f"Отправляю {batch_count}")
-                    await sender.send_data(nc, batch_count)
-                else:
-                    await self.parse()
-            except Exception as e:
-                logger.error(e)
+                await self.parse()
+                await self.sender.send_data()
             finally:
                 await asyncio.sleep(settings.parser.wait_interval)
