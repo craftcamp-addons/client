@@ -1,8 +1,6 @@
 import enum
 
-from sqlalchemy import ForeignKey
-from sqlalchemy.dialects.postgresql import ENUM
-from sqlalchemy.orm import mapped_column, Mapped, relationship
+from sqlalchemy.orm import mapped_column, Mapped
 
 from database.base import Base
 

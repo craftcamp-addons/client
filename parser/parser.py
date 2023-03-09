@@ -4,16 +4,14 @@ from pathlib import Path
 from sys import platform
 from typing import Protocol
 
-from nats.aio.client import Client
 from selenium import webdriver
 from selenium.common import WebDriverException
-from sqlalchemy import select, func
 
 from config import settings
-from services.data_sender_service import SenderService
-from database import get_session, get_actual_numbers, Number, NumberStatus
+from database import get_session, get_actual_number, Number
 from parser.basic_log_in_impl import BasicLogInImpl
 from parser.basic_parser_impl import BasicParserImpl
+from services.data_sender_service import SenderService
 
 logger = logging.getLogger(__name__)
 
@@ -76,16 +74,16 @@ class Parser:
                     logger.info("Пользователь не авторизован. Ожидаю авторизацию...")
                     self.whatsapp_logged_in = await self.user_logger.log_in(settings.selenium.log_in_timeout)
 
-                actual_numbers: list[Number] = await get_actual_numbers(session, 3)
-                while len(actual_numbers) == 0:
+                actual_number: Number | None = await get_actual_number(session)
+                while actual_number is None:
                     logger.info("Ожидается следующая пачка...")
-                    actual_numbers = await get_actual_numbers(session, 3)
+                    actual_number = await get_actual_number(session)
                     await asyncio.sleep(settings.parser.wait_interval)
 
-                for number in actual_numbers:
-                    logger.info(f"Парсинг номера: {number.number}")
-                    await self.parser.parse(number)
-                    await session.commit()
+                logger.info(f"Парсинг номера: {actual_number.number}")
+                await self.parser.parse(actual_number)
+                await session.commit()
+                await self.sender.send_data()
             except Exception as e:
                 logger.error(e)
                 await session.rollback()
@@ -94,6 +92,5 @@ class Parser:
         while True:
             try:
                 await self.parse()
-                await self.sender.send_data()
             finally:
                 await asyncio.sleep(settings.parser.wait_interval)

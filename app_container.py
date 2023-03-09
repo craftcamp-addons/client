@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Optional
 
 import nats.errors
 from nats.aio.client import Client
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 
 import utils
 from config import settings
+from database import check_tables
 from errors import DisconnectedException
 from handlers.base import BaseHandler
 from handlers.data_handler import DataHandler
@@ -17,14 +19,12 @@ from services.data_sender_service import SenderService
 
 
 class InitMessage(BaseModel):
-    id: int
-
-
-class InitAnswer(InitMessage):
-    name: str
+    id: Optional[int]
+    username: str
 
 
 class AppContainer:
+    user_id: int | None = None
     sender_service: SenderService | None = None
     parser: Parser | None = None
     nc: Client | None = None
@@ -33,8 +33,8 @@ class AppContainer:
 
     def __init__(self):
         self.handlers = [
-            DataHandler(settings.id, logging.getLogger("DataHandler")),
-            HeartbeatHandler(settings.id, logging.getLogger("HeartbeatHandler"))
+            DataHandler(logging.getLogger("DataHandler")),
+            HeartbeatHandler(logging.getLogger("HeartbeatHandler"))
         ]
 
     async def connect(self):
@@ -49,17 +49,22 @@ class AppContainer:
             self.logger.error(e)
             return False
 
-    async def authenticate(self):
+    async def authenticate(self) -> int:
         await self.ping_server()
-        init_response: Msg | None = await self.nc.request(subject='server.init',
-                                                          payload=utils.pack_msg(InitMessage(id=settings.id)),
-                                                          timeout=10
-                                                          )
+        init_response: Msg | None = await \
+            self.nc.request(subject='server.init',
+                            payload=utils.pack_msg(InitMessage(username=settings.name)),
+                            timeout=10
+                            )
 
-        if init_response is None:
+        init_message = utils.unpack_msg(init_response, InitMessage)
+        if init_message is None:
             raise DisconnectedException("Ошибка аутентификации")
 
-        self.logger.info(f"Пользователь {settings.id} успешно подключен")
+        self.logger.info(
+            f"Пользователь {init_message.id}:{init_message.username} успешно подключен"
+        )
+        return init_message.id
 
     async def ping_server(self):
         while True:
@@ -67,15 +72,18 @@ class AppContainer:
                 break
 
     async def run(self):
+        self.parser = Parser()
         while True:
             try:
-                await self.authenticate()
-                self.sender_service = SenderService(self.nc)
-                self.parser = Parser()
+                user_id: int = await self.authenticate()
+                self.sender_service = SenderService(self.nc, user_id)
+
                 self.parser.set_sender(self.sender_service)
                 await asyncio.gather(
-                    *[handler.subscribe(self.nc) for handler in self.handlers]
+                    *[handler.subscribe(user_id, self.nc) for handler in self.handlers]
                 )
+                self.logger.info("Подписочка на обновления есть, запускаю сервисы")
+                await check_tables()
 
                 await self.parser.start_parsing()
 

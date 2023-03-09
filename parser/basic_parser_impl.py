@@ -31,15 +31,15 @@ class BasicParserImpl:
         self.webdriver = driver
 
     async def save_photo(self, element: WebElement, number: Number):
-        if not self.photos_dir.exists():
-            self.photos_dir.mkdir(parents=True)
         image = Image.open(BytesIO(element.screenshot_as_png))
 
         # image = Image.open(self.photos_dir / (number.number + ".png"))
+        image_bytes = BytesIO()
         image.resize((image.size[0] // 2, image.size[1] // 2), Image.ANTIALIAS).save(
-            self.photos_dir / (number.number + ".png"), "PNG", optimise=True, quality=50)
+            image_bytes, "PNG", optimise=True, quality=50)
 
-        self.logger.info(f"Фоточку {number.number} сохранил в папку {self.photos_dir}")
+        number.image = image_bytes.getvalue()
+        self.logger.info(f"Фоточку {number.number} сохранил")
 
     async def parse(self, number: Number) -> None:
         """
@@ -51,7 +51,7 @@ class BasicParserImpl:
             number.status = NumberStatus.IN_WORK
             self.webdriver.get(self.url.format(number.number))
             try:
-                error_button = WebDriverWait(self.webdriver, self.wait_timeout).until(
+                WebDriverWait(self.webdriver, self.wait_timeout).until(
                     EC.element_to_be_clickable((By.XPATH, error_button_xpath)))
                 number.status = NumberStatus.ERROR
             except TimeoutException:
@@ -73,7 +73,7 @@ class BasicParserImpl:
                 await self.save_photo(photo, number)
                 number.status = NumberStatus.COMPLETED
 
-        except Exception as e:
+        except Exception:
             self.logger.error("Parsing error")
             if number.status == NumberStatus.SECONDCHECK:
                 number.status = NumberStatus.ERROR

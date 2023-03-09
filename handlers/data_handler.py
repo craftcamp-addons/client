@@ -15,40 +15,32 @@ class NumberTask(BaseModel):
     number: str
 
 
-class NubmersTask(BaseModel):
-    numbers: list[NumberTask]
-
-
 class DataHandler(BaseHandler):
-    stream_name: str = "data_stream"
+    stream_name: str = "data"
 
-    def __init__(self, user_id: int, logger: logging.Logger):
-        super().__init__(user_id, logger, "data")
+    def __init__(self, logger: logging.Logger):
+        super().__init__(logger, "data")
 
-    async def subscribe(self, nc: Client):
-        js = nc.jetstream()
-        await js.subscribe(
-            subject=self.subject,
-            stream=self.stream_name,
-            durable=self.subject,
+    async def subscribe(self, user_id: int, nc: Client):
+        await nc.subscribe(
+            subject=self.subject + str(user_id),
             cb=self.handle_message
         )
 
     async def handle(self, msg: Msg):
-        task: NubmersTask | None = utils.unpack_msg(msg, NubmersTask)
+        task: NumberTask | None = utils.unpack_msg(msg, NumberTask)
         if task is None:
             self.logger.error(f"Пустое сообщение: {msg}")
             return
 
-        self.logger.debug(f"Получена новая пачка: {len(task.numbers)}")
+        self.logger.debug(f"Получен новый номер: {task.number}")
 
         async with get_session() as session:
             try:
-                numbers: list[Number] = [
-                    Number(server_id=number.id, number=number.number) for number in task.numbers
-                ]
-                session.add_all(numbers)
+                numbers = Number(server_id=task.id, number=task.number)
+                session.add(numbers)
                 await session.commit()
+                await msg.respond(utils.pack_msg(task))
             except sqlalchemy.exc.IntegrityError as e:
                 self.logger.debug(e)
-        self.logger.debug(f"Сохранены {len(numbers)} номера")
+        self.logger.debug(f"Сохранен {numbers} номер")

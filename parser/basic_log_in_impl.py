@@ -1,12 +1,10 @@
-import asyncio
 import logging
-from pathlib import Path
 
 from selenium import webdriver
 from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
 
 from parser.xpaths import user_header_xpath
 

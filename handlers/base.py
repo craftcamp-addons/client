@@ -9,15 +9,13 @@ from nats.aio.msg import Msg
 class BaseHandler(ABC):
     subject: str
     logger: logging.Logger
-    user_id: int
 
-    def __init__(self, user_id: int, logger: logging.Logger, stream_name: str):
-        self.user_id = user_id
+    def __init__(self, logger: logging.Logger, stream_name: str):
         self.logger = logger
-        self.subject = f"worker.{stream_name}.{user_id}"
+        self.subject = f"worker.{stream_name}."
 
     @abstractmethod
-    async def subscribe(self, nc: Client):
+    async def subscribe(self, user_id: int, nc: Client):
         pass
 
     @abstractmethod

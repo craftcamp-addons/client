@@ -1,8 +1,8 @@
 {
-  "id": 1,
+  "name": "template",
   "server": {
     "init_timeout": 10,
-    "url": "46.138.248.205:4222"
+    "url": "path-to-nats"
   },
   "database": {
     "url": "sqlite+aiosqlite:///database.sqlite"
@@ -20,7 +20,7 @@
     "photos_dir": "photos"
   },
   "logging": {
-    "level": "DEBUG",
+    "level": "INFO",
     "format": "%(asctime)s - %(name)-12s - %(levelname)-8s - %(message)s",
     "datefmt": "%Y-%m-%d %H:%M:%S",
     "ignored": [
