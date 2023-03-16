@@ -7,7 +7,6 @@ from database.base import Base
 
 class NumberStatus(enum.Enum):
     CREATED = 0
-    IN_WORK = 1
     COMPLETED = 2
     SECONDCHECK = 3
     ERROR = 4

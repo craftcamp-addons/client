@@ -1,4 +1,5 @@
 import logging
+from typing import Callable, Awaitable
 
 import sqlalchemy.exc
 from nats.aio.client import Client
@@ -21,8 +22,8 @@ class DataHandler(BaseHandler):
     def __init__(self, logger: logging.Logger):
         super().__init__(logger, "data")
 
-    async def subscribe(self, user_id: int, nc: Client):
-        await nc.subscribe(
+    async def subscribe(self, user_id: int, nc: Callable[[], Awaitable[Client]]):
+        await (await nc()).subscribe(
             subject=self.subject + str(user_id),
             cb=self.handle_message
         )

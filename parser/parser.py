@@ -75,15 +75,12 @@ class Parser:
                     self.whatsapp_logged_in = await self.user_logger.log_in(settings.selenium.log_in_timeout)
 
                 actual_number: Number | None = await get_actual_number(session)
-                while actual_number is None:
-                    logger.info("Ожидается следующая пачка...")
-                    actual_number = await get_actual_number(session)
-                    await asyncio.sleep(settings.parser.wait_interval)
+                if actual_number is None:
+                    return
 
                 logger.info(f"Парсинг номера: {actual_number.number}")
                 await self.parser.parse(actual_number)
                 await session.commit()
-                await self.sender.send_data()
             except Exception as e:
                 logger.error(e)
                 await session.rollback()
@@ -92,5 +89,6 @@ class Parser:
         while True:
             try:
                 await self.parse()
+                await self.sender.send_data()
             finally:
                 await asyncio.sleep(settings.parser.wait_interval)

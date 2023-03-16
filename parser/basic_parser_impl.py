@@ -48,7 +48,6 @@ class BasicParserImpl:
             Parsing status: 0 - not started, 1 - parsing, 2 - finished, 3 - error. Secondcheck falls to 0 status
         """
         try:
-            number.status = NumberStatus.IN_WORK
             self.webdriver.get(self.url.format(number.number))
             try:
                 WebDriverWait(self.webdriver, self.wait_timeout).until(
@@ -73,8 +72,8 @@ class BasicParserImpl:
                 await self.save_photo(photo, number)
                 number.status = NumberStatus.COMPLETED
 
-        except Exception:
-            self.logger.error("Parsing error")
+        except Exception as e:
+            self.logger.error(f"Parsing error: {e}")
             if number.status == NumberStatus.SECONDCHECK:
                 number.status = NumberStatus.ERROR
             else:

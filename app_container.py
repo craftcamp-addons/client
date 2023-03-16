@@ -39,8 +39,7 @@ class AppContainer:
 
     async def connect(self):
         try:
-            if self.nc is None:
-                self.nc = await nats.connect(settings.server.url)
+            self.nc = await nats.connect(settings.server.url)
             return True
         except (nats.errors.TimeoutError, nats.errors.NoServersError):
             self.logger.error("Нет подключений")
@@ -71,16 +70,21 @@ class AppContainer:
             if await self.connect():
                 break
 
+    async def get_nc(self) -> Client:
+        if self.nc is None:
+            await self.ping_server()
+        return self.nc
+    # TODO: Причесать код, разделить на правильные сервисы и распараллелить процесс отгрузки\парсинга
     async def run(self):
         self.parser = Parser()
         while True:
             try:
                 user_id: int = await self.authenticate()
-                self.sender_service = SenderService(self.nc, user_id)
+                self.sender_service = SenderService(user_id, self.get_nc)
 
                 self.parser.set_sender(self.sender_service)
                 await asyncio.gather(
-                    *[handler.subscribe(user_id, self.nc) for handler in self.handlers]
+                    *[handler.subscribe(user_id, self.get_nc) for handler in self.handlers]
                 )
                 self.logger.info("Подписочка на обновления есть, запускаю сервисы")
                 await check_tables()

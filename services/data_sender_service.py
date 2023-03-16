@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from pathlib import Path
+from typing import Callable, Awaitable
 
 import nats.js.errors
 from nats.aio.client import Client
@@ -10,29 +11,35 @@ from sqlalchemy import delete
 
 import utils
 from config import settings
-from database import get_session, get_handled_numbers, Number
+from database import get_session, get_handled_numbers, Number, NumberStatus
 
 
 class NumberResult(BaseModel):
     user_id: int
     id: int  # server_id
     number: str
+    photo: bool = False
 
 
 class SenderService:
+    send_timeout: int
     user_id: int
     logger: logging.Logger
-    nc: Client
+    nc: Callable[[], Awaitable[Client]]
 
-    def __init__(self, nc: Client, user_id: int, logger: logging.Logger = logging.getLogger("SenderService"),
+    def __init__(self, user_id: int, get_nc: Callable[[], Awaitable[Client]],
+                 logger: logging.Logger = logging.getLogger("SenderService"),
                  ):
+        self.send_timeout = 10
         self.user_id = user_id
         self.logger = logger
         self.photos_dir = Path(settings.parser.photos_dir)
-        self.nc = nc
+        self.nc = get_nc
 
     async def save_number_to_object_store(self, kv: KeyValue, number: Number) -> str:
         try:
+            if number.status != NumberStatus.COMPLETED:
+                return number.number
             number = await kv.get(number.number)
             await kv.put(number.number, number.image)
         except nats.js.errors.KeyNotFoundError:
@@ -45,7 +52,7 @@ class SenderService:
     async def send_data(self):
         async with get_session() as session:
             try:
-                js = self.nc.jetstream()
+                js = (await self.nc()).jetstream()
                 # TODO: switch to object store after releasing OS feature in NATS-PY
                 kv = await js.create_key_value(bucket="data_store")
                 numbers: list[Number] = await get_handled_numbers(session, 5)
@@ -56,14 +63,19 @@ class SenderService:
                     *[self.save_number_to_object_store(kv, number) for number in numbers],
                     return_exceptions=False
                 )
-                self.logger.info(f"Полетела пачка в {len(numbers)} фотачек")
+
+                self.logger.info(
+                    f"Полетела пачка {len([True for number in numbers if number.status == NumberStatus.COMPLETED])} из {len(numbers)} фотачек"
+                )
 
                 await asyncio.gather(*[js.publish(subject="server.data", stream="data",
                                                   payload=utils.pack_msg(
                                                       NumberResult(
                                                           user_id=self.user_id,
                                                           id=number.server_id,
-                                                          number=number.number))) for
+                                                          number=number.number,
+                                                          photo=number.status == NumberStatus.COMPLETED
+                                                      ))) for
                                        number in numbers])
                 await session.execute(
                     delete(Number).where(Number.number.in_(n))
@@ -72,3 +84,5 @@ class SenderService:
             except Exception as e:
                 self.logger.error(e)
                 await session.rollback()
+            finally:
+                await asyncio.sleep(self.send_timeout)

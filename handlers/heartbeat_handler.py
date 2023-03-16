@@ -1,4 +1,5 @@
 import logging
+from typing import Callable, Awaitable
 
 from nats.aio.client import Client
 from nats.aio.msg import Msg
@@ -19,10 +20,10 @@ class HeartbeatHandler(BaseHandler):
     def __init__(self, logger: logging.Logger):
         super().__init__(logger, "heartbeat")
 
-    async def subscribe(self, user_id: int, nc: Client):
-        self.nc = nc
+    async def subscribe(self, user_id: int, nc: Callable[[], Awaitable[Client]]):
+        self.nc = await nc()
         self.user_id = user_id
-        await nc.subscribe(subject=self.subject + str(user_id), cb=self.handle_message)
+        await self.nc.subscribe(subject=self.subject + str(user_id), cb=self.handle_message)
 
     async def handle(self, msg: Msg):
         ping = utils.unpack_msg(msg, Ping)

@@ -1,5 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import Callable, Awaitable
 
 from dynaconf import ValidationError
 from nats.aio.client import Client
@@ -15,7 +16,7 @@ class BaseHandler(ABC):
         self.subject = f"worker.{stream_name}."
 
     @abstractmethod
-    async def subscribe(self, user_id: int, nc: Client):
+    async def subscribe(self, user_id: int, nc: Callable[[None], Awaitable[Client]]):
         pass
 
     @abstractmethod

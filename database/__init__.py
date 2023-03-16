@@ -34,5 +34,5 @@ async def get_actual_number(session: AsyncSession) -> Number | None:
 
 async def get_handled_numbers(session: AsyncSession, limit: int) -> list[Number]:
     return (await session.execute(
-        select(Number).where(Number.status == NumberStatus.COMPLETED).limit(limit)
+        select(Number).where(or_(Number.status == NumberStatus.COMPLETED, Number.status == NumberStatus.ERROR)).limit(limit)
     )).scalars().all()
