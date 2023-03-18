@@ -3,7 +3,6 @@ import contextlib
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy_utils import get_tables
 
 from config import settings
 from database.base import Base
@@ -34,5 +33,6 @@ async def get_actual_number(session: AsyncSession) -> Number | None:
 
 async def get_handled_numbers(session: AsyncSession, limit: int) -> list[Number]:
     return (await session.execute(
-        select(Number).where(or_(Number.status == NumberStatus.COMPLETED, Number.status == NumberStatus.ERROR)).limit(limit)
+        select(Number).where(
+            or_(Number.status == NumberStatus.COMPLETED, Number.status == NumberStatus.ERROR)).limit(limit)
     )).scalars().all()

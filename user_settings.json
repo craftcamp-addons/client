@@ -1,0 +1,12 @@
+{
+  "name": "test",
+  "server": {
+    "init_timeout": 10,
+    "url": "localhost:4222"
+  },
+  "selenium": {
+    "chromedriver_path": "chromedriver",
+    "chromedriver_data_dir": "chromedriver_data",
+    "log_in_timeout": 90
+  }
+}

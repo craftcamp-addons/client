@@ -74,6 +74,7 @@ class AppContainer:
         if self.nc is None:
             await self.ping_server()
         return self.nc
+
     # TODO: Причесать код, разделить на правильные сервисы и распараллелить процесс отгрузки\парсинга
     async def run(self):
         self.parser = Parser()
