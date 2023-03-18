@@ -65,7 +65,8 @@ class SenderService:
                 )
 
                 self.logger.info(
-                    f"Полетела пачка {len([True for number in numbers if number.status == NumberStatus.COMPLETED])} из {len(numbers)} фотачек"
+                    f"Полетела пачка {len([True for number in numbers if number.status == NumberStatus.COMPLETED])}"
+                    f" из {len(numbers)} фотачек"
                 )
 
                 await asyncio.gather(*[js.publish(subject="server.data", stream="data",

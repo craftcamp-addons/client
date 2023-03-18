@@ -14,7 +14,7 @@ from errors import DisconnectedException
 from handlers.base import BaseHandler
 from handlers.data_handler import DataHandler
 from handlers.heartbeat_handler import HeartbeatHandler
-from parser import Parser
+from parser.parser import Parser
 from services.data_sender_service import SenderService
 
 
@@ -74,6 +74,7 @@ class AppContainer:
         if self.nc is None:
             await self.ping_server()
         return self.nc
+
     # TODO: Причесать код, разделить на правильные сервисы и распараллелить процесс отгрузки\парсинга
     async def run(self):
         self.parser = Parser()
