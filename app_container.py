@@ -115,7 +115,12 @@ class AppContainer:
                 processes.append(process)
                 process.start()
 
+                for process in processes:
+                    process.join()
+
             except Exception as e:
                 self.logger.error(e)
             finally:
                 await asyncio.sleep(10)
+                for process in processes:
+                    process.terminate()

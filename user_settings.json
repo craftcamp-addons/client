@@ -1,6 +1,6 @@
 {
   "name": "test",
-  "enable_offline_mode": false,
+  "enable_offline_mode": true,
   "server": {
     "init_timeout": 10,
     "url": "localhost:4222"
