@@ -4,17 +4,20 @@
 
 СНАЧАЛА 
 
-Поменять в файле ```settings.json``` параметры
+Поменять в файле ```user_settings.json``` параметры
 ```json
-"id": 1 // ваш id
 
-server: {
-  "url": "46.138.248.205:4222" // проверить чтобы адрес был таким
-}
-
-selenium: {
-    "chromedriver_path": "chromedriver" // лучше чтобы пути были абсолютными
-    "chromedriver_data_dir": "chromedriver_data" // лучше чтобы пути были абсолютными
+{
+  "name": "test",
+  "server": {
+    "init_timeout": 10,
+    "url": поставить адрес, который я скажу
+  },
+  "selenium": {
+    "chromedriver_path": поставить АБСОЛЮТНЫЙ путь к файлу chromedriver.exe, его надо скачать,
+    "chromedriver_data_dir": поставить АБСОЛЮТНЫЙ путь к существующей(лучше будет) ,
+    "log_in_timeout": 90
+  }
 }
 
 ```
