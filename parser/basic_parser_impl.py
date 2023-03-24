@@ -3,7 +3,7 @@ from io import BytesIO
 from pathlib import Path
 
 from PIL import Image
-from selenium import webdriver
+from selenium.webdriver import Chrome
 from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
@@ -16,12 +16,12 @@ from parser.xpaths import error_button_xpath, on_profile_second_xpath, business_
 
 class BasicParserImpl:
     url: str
-    webdriver: webdriver.Chrome
+    webdriver: Chrome
     wait_timeout: int
     logger: logging.Logger
     photos_dir: Path
 
-    def __init__(self, driver: webdriver.Chrome, url: str, webdriver_timeout: int, photos_dir: str,
+    def __init__(self, driver: Chrome, url: str, webdriver_timeout: int, photos_dir: str,
                  logger: logging.Logger = logging.getLogger("Parser")):
         super(BasicParserImpl, self).__init__()
         self.url = url
@@ -39,7 +39,7 @@ class BasicParserImpl:
             image_bytes, "PNG", optimise=True, quality=50)
 
         number.image = image_bytes.getvalue()
-        self.logger.info(f"Фоточку {number.number} сохранил")
+        self.logger.info(f"Фотография {number.number}.png сохранена")
 
     async def parse(self, number: Number) -> None:
         """

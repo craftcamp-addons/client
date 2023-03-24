@@ -11,7 +11,7 @@ from config import settings
 from database import get_session, get_actual_number, Number
 from parser.basic_log_in_impl import BasicLogInImpl
 from parser.basic_parser_impl import BasicParserImpl
-from services.data_sender_service import SenderService
+from services.base_sender_service import BaseSenderService
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class BaseLogInImpl(Protocol):
 class Parser:
     parser: BaseParserImpl
     user_logger: BaseLogInImpl
-    sender: SenderService
+    sender: BaseSenderService | None = None
 
     webdriver: webdriver.Chrome
 
@@ -58,15 +58,6 @@ class Parser:
                                       )
         self.user_logger = BasicLogInImpl(self.webdriver)
 
-    def set_parser(self, parser: BaseParserImpl):
-        self.parser = parser
-
-    def set_user_logger(self, user_logger: BaseLogInImpl):
-        self.user_logger = user_logger
-
-    def set_sender(self, sender: SenderService):
-        self.sender = sender
-
     async def parse(self):
         async with get_session() as session:
             try:
@@ -89,6 +80,8 @@ class Parser:
         while True:
             try:
                 await self.parse()
-                await self.sender.send_data()
+                # TODO: Мне кажется можно изменить структуру так, чтобы это было хотя бы немного более... элегантно?
+                if self.sender is not None:
+                    await self.sender.send_data()
             finally:
                 await asyncio.sleep(settings.parser.wait_interval)

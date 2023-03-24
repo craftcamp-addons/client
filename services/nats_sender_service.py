@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from pathlib import Path
 from typing import Callable, Awaitable
 
 import nats.js.errors
@@ -10,8 +9,8 @@ from pydantic import BaseModel
 from sqlalchemy import delete
 
 import utils
-from config import settings
 from database import get_session, get_handled_numbers, Number, NumberStatus
+from services.base_sender_service import BaseSenderService
 
 
 class NumberResult(BaseModel):
@@ -21,19 +20,17 @@ class NumberResult(BaseModel):
     photo: bool = False
 
 
-class SenderService:
+class NatsSenderService(BaseSenderService):
     send_timeout: int
     user_id: int
-    logger: logging.Logger
     nc: Callable[[], Awaitable[Client]]
 
     def __init__(self, user_id: int, get_nc: Callable[[], Awaitable[Client]],
-                 logger: logging.Logger = logging.getLogger("SenderService"),
+                 logger: logging.Logger = logging.getLogger("NatsSenderService"),
                  ):
+        super().__init__(logger)
         self.send_timeout = 10
         self.user_id = user_id
-        self.logger = logger
-        self.photos_dir = Path(settings.parser.photos_dir)
         self.nc = get_nc
 
     async def save_number_to_object_store(self, kv: KeyValue, number: Number) -> str:
@@ -53,7 +50,7 @@ class SenderService:
         async with get_session() as session:
             try:
                 js = (await self.nc()).jetstream()
-                # TODO: switch to object store after releasing OS feature in NATS-PY
+                # TODO: поменять на Object Store, когда его добавят в библиотеку
                 kv = await js.create_key_value(bucket="data_store")
                 numbers: list[Number] = await get_handled_numbers(session, 5)
                 if numbers is None or len(numbers) == 0:

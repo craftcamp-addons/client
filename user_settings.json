@@ -1,5 +1,6 @@
 {
-  "name": "test",
+  "name": "Юрлов",
+  "enable_offline_mode": false,
   "server": {
     "init_timeout": 10,
     "url": "localhost:4222"

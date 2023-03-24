@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from multiprocessing import Process
 from typing import Optional
 
 import nats.errors
@@ -15,7 +16,9 @@ from handlers.base import BaseHandler
 from handlers.data_handler import DataHandler
 from handlers.heartbeat_handler import HeartbeatHandler
 from parser.parser import Parser
-from services.data_sender_service import SenderService
+from services.base_sender_service import BaseSenderService
+from services.nats_sender_service import NatsSenderService
+from services.zmq_listener_service import ZmqListenerService
 
 
 class InitMessage(BaseModel):
@@ -25,9 +28,10 @@ class InitMessage(BaseModel):
 
 class AppContainer:
     user_id: int | None = None
-    sender_service: SenderService | None = None
+    sender_service: BaseSenderService | None = None
     parser: Parser | None = None
     nc: Client | None = None
+    zmq_listener: ZmqListenerService | None = None
     handlers: list[BaseHandler] = []
     logger: logging.Logger = logging.getLogger("__main__")
 
@@ -75,22 +79,41 @@ class AppContainer:
             await self.ping_server()
         return self.nc
 
-    # TODO: Причесать код, разделить на правильные сервисы и распараллелить процесс отгрузки\парсинга
+    # TODO: Причесать код, разделить на правильные сервисы и распараллеливать процесс отгрузки\парсинга
     async def run(self):
         self.parser = Parser()
         while True:
             try:
-                user_id: int = await self.authenticate()
-                self.sender_service = SenderService(user_id, self.get_nc)
+                offline_mode: bool = settings.enable_offline_mode
 
-                self.parser.set_sender(self.sender_service)
-                await asyncio.gather(
-                    *[handler.subscribe(user_id, self.get_nc) for handler in self.handlers]
-                )
-                self.logger.info("Подписочка на обновления есть, запускаю сервисы")
+                processes: list[Process] = []
+                if offline_mode:
+                    self.logger.info("Запуск в режиме оффлайн")
+                    self.zmq_listener = ZmqListenerService(settings.zmq.comm_dir,
+                                                           None)
+
+                    process = Process(
+                        target=lambda x: asyncio.run(x.start_listening()), args=(self.zmq_listener,)
+                    )
+                    processes.append(process)
+
+                    process.start()
+                else:
+                    self.user_id: int = await self.authenticate()
+                    self.sender_service = NatsSenderService(self.user_id, self.get_nc)
+                    await asyncio.gather(
+                        *[handler.subscribe(self.user_id, self.get_nc) for handler in self.handlers]
+                    )
+                    self.logger.info("Подписался на обновления, запуск сервисов...")
+
+                    self.parser.sender = self.sender_service
+
                 await check_tables()
-
-                await self.parser.start_parsing()
+                process = Process(
+                    target=lambda x: asyncio.run(x.start_parsing()), args=(self.parser,)
+                )
+                processes.append(process)
+                process.start()
 
             except Exception as e:
                 self.logger.error(e)

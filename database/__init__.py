@@ -1,6 +1,7 @@
 import contextlib
+from typing import Sequence
 
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, and_, text, Row
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -23,16 +24,31 @@ async def get_session() -> AsyncSession:
         yield session
 
 
-async def get_actual_number(session: AsyncSession) -> Number | None:
+# TODO: Вынести в отдельный файл. Оформить так же все запросы (по крайней мере типовые)
+async def get_actual_number(session: AsyncSession, offline: bool = False) -> Number | None:
     return (await session.execute(
-        select(Number).where(
-            or_(Number.status == NumberStatus.CREATED, Number.status == NumberStatus.SECONDCHECK)).order_by(
+        select(Number).where(and_(
+            or_(Number.status == NumberStatus.CREATED, Number.status == NumberStatus.SECONDCHECK),
+            (Number.server_id is not None if not offline else True))).order_by(
             Number.status).limit(1)
     )).scalar_one_or_none()
 
 
-async def get_handled_numbers(session: AsyncSession, limit: int) -> list[Number]:
+async def get_handled_numbers(session: AsyncSession, limit: int = 1_000_000_000, offline: bool = False) -> Sequence[
+    Number
+]:
     return (await session.execute(
-        select(Number).where(
-            or_(Number.status == NumberStatus.COMPLETED, Number.status == NumberStatus.ERROR)).limit(limit)
+        select(Number).where(and_(
+            or_(Number.status == NumberStatus.COMPLETED, Number.status == NumberStatus.ERROR),
+            (Number.server_id is not None if not offline else True))).limit(limit)
     )).scalars().all()
+
+
+async def get_status(session: AsyncSession) -> Row:
+    return (await session.execute(
+        text("""select
+            (select count(1) from numbers where server_id is NULL),
+            (select count(1) from numbers where server_id is NULL and status like 'COMPLETED'),
+            (select count(1) from numbers where server_id is NULL and status like 'ERROR')
+        """)
+    )).one()

@@ -1,5 +1,5 @@
 SQLAlchemy~=2.0.4
-msgpack
+msgpack~=1.0.4
 dynaconf~=3.1.11
 pydantic~=1.10.5
 nats-py
@@ -10,3 +10,4 @@ alembic~=1.9.4
 aiosqlite
 aiosqlite3
 sqlalchemy_utils
+pyzmq~=25.0.2
