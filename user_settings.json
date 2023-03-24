@@ -1,5 +1,5 @@
 {
-  "name": "Юрлов",
+  "name": "test",
   "enable_offline_mode": false,
   "server": {
     "init_timeout": 10,
