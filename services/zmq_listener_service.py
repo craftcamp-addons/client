@@ -76,9 +76,10 @@ class ZmqListenerService:
                 if password != "":
                     file.setpassword(password.encode())
                 for number in numbers:
-                    file.writestr(
-                        (number.id + ".png"), number.image
-                    )
+                    if number.image is not None:
+                        file.writestr(
+                            (str(number.number) + ".png"), number.image
+                        )
 
     async def start_listening(self):
         context = zmq_async.Context()
@@ -113,5 +114,5 @@ class ZmqListenerService:
                             await socket.send(msgpack.packb({"status": ERR}))
                             continue
                 except Exception as e:
-                    await socket.send(msgpack.packb({"status": ERR}))
+                    await socket.send(msgpack.packb({"status": ERR, "command": command}))
                     self.logger.error(e)
