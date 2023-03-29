@@ -42,6 +42,8 @@ def create_socket(ctx: zmq.Context) -> Iterator[zmq.Socket]:
     except Exception:
         raise RuntimeError(f"Пожалуйста, не трогайте файл {comm_dir.absolute() / 'port'}")
     socket = ctx.socket(zmq.REQ)
+    socket.set(zmq.RCVTIMEO, 10000)
+    socket.set(zmq.SNDTIMEO, 10000)
     with socket.connect(f"tcp://127.0.0.1:{port}"):
         yield socket
 
@@ -121,7 +123,6 @@ def main():
 
     main_parser.add_option_group(download_group)
     main_parser.add_option_group(upload_group)
-
 
     (options, arguments) = main_parser.parse_args()
     if not any([options.download, options.upload, options.status]):

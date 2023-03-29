@@ -15,7 +15,7 @@ class BasicLogInImpl:
     def __init__(self, driver: webdriver.Chrome):
         self.driver = driver
 
-    async def log_in(self, timeout: int) -> bool:
+    def log_in(self, timeout: int) -> bool:
         self.driver.get("https://web.whatsapp.com")
         try:
             WebDriverWait(self.driver, timeout).until(
