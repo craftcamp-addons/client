@@ -59,7 +59,6 @@ class Parser:
                 try:
                     options = webdriver.ChromeOptions()
                     options.add_argument('--disable-dev-shm-usage')
-                    options.add_argument('--remote-debugging-port=0')
                     options.add_argument('--allow-profiles-outside-user-dir')
                     options.add_argument('--enable-profile-shortcut-manager')
                     chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_data_dir).absolute()

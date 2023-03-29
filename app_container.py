@@ -109,8 +109,8 @@ class AppContainer:
 
                 tasks.append(self.parser.start())
 
-                errors = await asyncio.gather(*tasks)
-                for error in errors:
+                errors = await asyncio.gather(*tasks, return_exceptions=True)
+                for error in (e for e in errors if isinstance(e, Exception)):
                     self.logger.error(error)
 
             except Exception as e:
