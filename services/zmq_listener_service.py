@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import zipfile
 from pathlib import Path
@@ -122,6 +123,6 @@ class ZmqListenerService:
                 self.logger.error(e)
 
     @staticmethod
-    async def start():
+    def start():
         listener = ZmqListenerService()
-        await listener.start_listening()
+        asyncio.run(listener.start_listening())

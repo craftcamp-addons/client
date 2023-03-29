@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from multiprocessing import Pool
+from multiprocessing import Pool, Process
 from typing import Optional
 
 import nats.errors
@@ -86,6 +86,7 @@ class AppContainer:
     # TODO: Причесать код, разделить на правильные сервисы и распараллеливать процесс отгрузки\парсинга
     async def run(self):
         self.parser = Parser()
+        listener_process = None
         while True:
             tasks: list = []
             try:
@@ -94,7 +95,8 @@ class AppContainer:
                 if offline_mode:
                     self.logger.info("Запуск в режиме оффлайн")
 
-                    tasks.append(ZmqListenerService.start())
+                    listener_process = Process(target=ZmqListenerService.start)
+                    listener_process.start()
                 else:
                     self.user_id: int = await self.authenticate()
                     self.sender_service = NatsSenderService(self.user_id, self.get_nc)
@@ -113,7 +115,9 @@ class AppContainer:
                 for error in (e for e in errors if isinstance(e, Exception)):
                     self.logger.error(error)
 
+                listener_process.join()
             except Exception as e:
                 self.logger.error(e)
             finally:
                 await asyncio.sleep(10)
+                listener_process.terminate()
