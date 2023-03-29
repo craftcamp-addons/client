@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from multiprocessing import Process, Pool
+from multiprocessing import Pool
 from typing import Optional
 
 import nats.errors
@@ -19,6 +19,10 @@ from parser.parser import Parser
 from services.base_sender_service import BaseSenderService
 from services.nats_sender_service import NatsSenderService
 from services.zmq_listener_service import ZmqListenerService
+
+
+def apply_sync(o):
+    asyncio.run(o.start())
 
 
 class InitMessage(BaseModel):
@@ -84,6 +88,7 @@ class AppContainer:
         self.parser = Parser()
         while True:
             processes: Pool = Pool(processes=2)
+            tasks: list = []
             try:
                 offline_mode: bool = settings.enable_offline_mode
 
@@ -92,7 +97,7 @@ class AppContainer:
                     self.zmq_listener = ZmqListenerService(settings.zmq.comm_dir,
                                                            None)
 
-                    processes.apply_async(func=lambda x: asyncio.run(x.start_listening()), args=(self.zmq_listener,))
+                    tasks.append(self.zmq_listener)
                 else:
                     self.user_id: int = await self.authenticate()
                     self.sender_service = NatsSenderService(self.user_id, self.get_nc)
@@ -104,11 +109,11 @@ class AppContainer:
                     self.parser.sender = self.sender_service
 
                 await check_tables()
-                processes.apply_async(
-                    func=lambda x: asyncio.run(x.start_parsing()), args=(self.parser,)
-                )
+                tasks.append(self.parser)
 
-                processes.join()
+                processes.map(apply_sync, iterable=tasks)
+
+
             except Exception as e:
                 self.logger.error(e)
             finally:

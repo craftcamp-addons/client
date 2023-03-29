@@ -76,7 +76,7 @@ class Parser:
                 logger.error(e)
                 await session.rollback()
 
-    async def start_parsing(self):
+    async def start(self):
         while True:
             try:
                 await self.parse()

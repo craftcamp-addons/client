@@ -81,7 +81,7 @@ class ZmqListenerService:
                             (str(number.number) + ".png"), number.image
                         )
 
-    async def start_listening(self):
+    async def start(self):
         context = zmq_async.Context()
         socket = context.socket(zmq.REP)
 
