@@ -47,7 +47,7 @@ class Parser:
             options.add_argument('--profile-directory=Profile 1')
 
             chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_path).absolute()
-            self.webdriver = webdriver.Chrome(chromedriver_data_dir if platform != 'win32' else
+            self.webdriver = webdriver.Chrome(executable_path=chromedriver_data_dir if platform != 'win32' else
                                               str(chromedriver_data_dir) + ".exe", options=options)
         except WebDriverException as e:
             logger.error(e)
@@ -86,6 +86,7 @@ class Parser:
             finally:
                 await asyncio.sleep(settings.parser.wait_interval)
 
-    async def start(self):
+    @staticmethod
+    async def start():
         parser = Parser()
         await parser.start_parsing()
