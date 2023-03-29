@@ -25,12 +25,12 @@ async def get_session() -> AsyncSession:
 
 
 # TODO: Вынести в отдельный файл. Оформить так же все запросы (по крайней мере типовые)
-async def get_actual_number(session: AsyncSession, offline: bool = False) -> Number | None:
+async def get_actual_number(session: AsyncSession, offline: bool = False, limit: int = 1) -> Number | None:
     return (await session.execute(
         select(Number).where(and_(
             or_(Number.status == NumberStatus.CREATED, Number.status == NumberStatus.SECONDCHECK),
             (Number.server_id is not None if not offline else True))).order_by(
-            Number.status).limit(1)
+            Number.status).limit(limit)
     )).scalar_one_or_none()
 
 

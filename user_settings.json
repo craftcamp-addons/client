@@ -6,8 +6,8 @@
     "url": "localhost:4222"
   },
   "selenium": {
-    "chromedriver_path": "/home/teufel/PycharmProjects/photos_client_v3/chromedriver",
-    "chromedriver_data_dir": "/home/teufel/PycharmProjects/photos_client_v3/chromedriver_data",
+    "chromedriver_path": "chromedriver",
+    "chromedriver_data_dir": "chromedriver_data",
     "log_in_timeout": 90
   }
 }

@@ -87,15 +87,14 @@ class AppContainer:
     async def run(self):
         self.parser = Parser()
         while True:
-            processes: Pool = Pool(processes=2)
-            task = None
+            tasks: list = []
             try:
                 offline_mode: bool = settings.enable_offline_mode
 
                 if offline_mode:
                     self.logger.info("Запуск в режиме оффлайн")
 
-                    task = processes.apply_async(apply_sync, args=(ZmqListenerService.start,))
+                    tasks.append(ZmqListenerService.start())
                 else:
                     self.user_id: int = await self.authenticate()
                     self.sender_service = NatsSenderService(self.user_id, self.get_nc)
@@ -108,11 +107,13 @@ class AppContainer:
 
                 await check_tables()
 
-                await self.parser.start()
-                task.get()
+                tasks.append(self.parser.start())
+
+                errors = await asyncio.gather(*tasks)
+                for error in errors:
+                    self.logger.error(error)
 
             except Exception as e:
                 self.logger.error(e)
             finally:
                 await asyncio.sleep(10)
-                processes.terminate()

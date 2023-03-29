@@ -35,29 +35,6 @@ class Parser:
 
     whatsapp_logged_in: bool = False
 
-    def __init__(self):
-        try:
-            options = webdriver.ChromeOptions()
-            if platform != 'win32':
-                options.add_argument('--disable-dev-shm-usage')
-            options.add_argument('--allow-profiles-outside-user-dir')
-            options.add_argument('--enable-profile-shortcut-manager')
-            chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_data_dir).absolute()
-            options.add_argument(f'--user-data-dir={chromedriver_data_dir / "user"}')
-            options.add_argument('--profile-directory=Profile 1')
-
-            chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_path).absolute()
-            self.webdriver = webdriver.Chrome(executable_path=chromedriver_data_dir if platform != 'win32' else
-                                              str(chromedriver_data_dir) + ".exe", options=options)
-        except WebDriverException as e:
-            logger.error(e)
-            raise RuntimeError("Не удалось запустить chromedriver")
-        self.parser = BasicParserImpl(self.webdriver, settings.parser.url,
-                                      settings.parser.webdriver_timeout,
-                                      settings.parser.photos_dir
-                                      )
-        self.user_logger = BasicLogInImpl(self.webdriver)
-
     async def parse(self):
         async with get_session() as session:
             try:
@@ -79,6 +56,27 @@ class Parser:
     async def start_parsing(self):
         while True:
             try:
+                try:
+                    options = webdriver.ChromeOptions()
+                    options.add_argument('--disable-dev-shm-usage')
+                    options.add_argument('--remote-debugging-port=0')
+                    options.add_argument('--allow-profiles-outside-user-dir')
+                    options.add_argument('--enable-profile-shortcut-manager')
+                    chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_data_dir).absolute()
+                    options.add_argument(f'--user-data-dir={chromedriver_data_dir / "user"}')
+                    options.add_argument('--profile-directory=Profile 1')
+
+                    chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_path).absolute()
+                    self.webdriver = webdriver.Chrome(executable_path=chromedriver_data_dir if platform != 'win32' else
+                    str(chromedriver_data_dir) + ".exe", options=options)
+                except WebDriverException as e:
+                    logger.error(e)
+                    raise RuntimeError("Не удалось запустить chromedriver")
+                self.parser = BasicParserImpl(self.webdriver, settings.parser.url,
+                                              settings.parser.webdriver_timeout,
+                                              settings.parser.photos_dir
+                                              )
+                self.user_logger = BasicLogInImpl(self.webdriver)
                 await self.parse()
                 # TODO: Мне кажется можно изменить структуру так, чтобы это было хотя бы немного более... элегантно?
                 if self.sender is not None:
@@ -88,5 +86,8 @@ class Parser:
 
     @staticmethod
     async def start():
-        parser = Parser()
-        await parser.start_parsing()
+        try:
+            parser = Parser()
+            await parser.start_parsing()
+        finally:
+            parser.webdriver.quit()
