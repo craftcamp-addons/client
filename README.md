@@ -9,6 +9,7 @@
 
 {
   "name": "test",
+  "enable_offline_mode": true | false поставить актуальное
   "server": {
     "init_timeout": 10,
     "url": поставить адрес, который я скажу
@@ -24,9 +25,6 @@
 
 
 ```shell
-wget https://chromedriver.storage.googleapis.com/110.0.5481.77/chromedriver_win32.zip
-unzip chromedriver_win32.zip chromedriver
-
 python -m venv venv
 
 # WIN
@@ -35,6 +33,26 @@ python -m venv venv
 source ./venv/bin/activate
 
 pip install -r requirements.txt
-PYTHONPATH=`:$PYTHONPATH` python main.py
 
+# WIN
+set PYTHONPATH=`%cd%`
+# LINUX
+export PYTHONPATH=`pwd`
+
+python main.py
+
+```
+
+## Оффлайн режим
+
+В оффлайн режиме с парсером можно взаимодействовать через cli.py в том же окружении
+
+Для отображения возможных опций
+```
+# WIN
+./venv/Scripts/activate.bat
+# LINUX
+source ./venv/bin/activate
+
+python cli.py
 ```

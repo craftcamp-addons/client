@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 from typing import Optional
 
 import nats.errors
@@ -83,21 +83,16 @@ class AppContainer:
     async def run(self):
         self.parser = Parser()
         while True:
+            processes: Pool = Pool(processes=2)
             try:
                 offline_mode: bool = settings.enable_offline_mode
 
-                processes: list[Process] = []
                 if offline_mode:
                     self.logger.info("Запуск в режиме оффлайн")
                     self.zmq_listener = ZmqListenerService(settings.zmq.comm_dir,
                                                            None)
 
-                    process = Process(
-                        target=lambda x: asyncio.run(x.start_listening()), args=(self.zmq_listener,)
-                    )
-                    processes.append(process)
-
-                    process.start()
+                    processes.apply_async(func=lambda x: asyncio.run(x.start_listening()), args=(self.zmq_listener,))
                 else:
                     self.user_id: int = await self.authenticate()
                     self.sender_service = NatsSenderService(self.user_id, self.get_nc)
@@ -109,18 +104,13 @@ class AppContainer:
                     self.parser.sender = self.sender_service
 
                 await check_tables()
-                process = Process(
-                    target=lambda x: asyncio.run(x.start_parsing()), args=(self.parser,)
+                processes.apply_async(
+                    func=lambda x: asyncio.run(x.start_parsing()), args=(self.parser,)
                 )
-                processes.append(process)
-                process.start()
 
-                for process in processes:
-                    process.join()
-
+                processes.join()
             except Exception as e:
                 self.logger.error(e)
             finally:
                 await asyncio.sleep(10)
-                for process in processes:
-                    process.terminate()
+                processes.terminate()
