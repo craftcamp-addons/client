@@ -31,33 +31,34 @@ class Parser:
     user_logger: BaseLogInImpl
     sender: BaseSenderService | None = None
 
-    webdriver: webdriver.Chrome
+    driver: webdriver.Chrome | None = None
 
     whatsapp_logged_in: bool = False
 
     async def parse(self):
-        try:
-            options = webdriver.ChromeOptions()
-            options.add_argument('--disable-dev-shm-usage')
-            options.add_argument('--allow-profiles-outside-user-dir')
-            options.add_experimental_option("detach", True)
-            options.add_experimental_option('excludeSwitches', ['enable-logging'])
-            options.add_argument('--enable-profile-shortcut-manager')
-            chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_data_dir).absolute()
-            options.add_argument(f'--user-data-dir={chromedriver_data_dir / "user"}')
-            options.add_argument('--profile-directory=Profile 1')
+        if self.driver is None:
+            try:
+                options = webdriver.ChromeOptions()
+                options.add_argument('--disable-dev-shm-usage')
+                options.add_argument('--allow-profiles-outside-user-dir')
+                options.add_experimental_option("detach", True)
+                options.add_experimental_option('excludeSwitches', ['enable-logging'])
+                options.add_argument('--enable-profile-shortcut-manager')
+                chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_data_dir).absolute()
+                options.add_argument(f'--user-data-dir={chromedriver_data_dir / "user"}')
+                options.add_argument('--profile-directory=Profile 1')
 
-            chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_path).absolute()
-            self.webdriver = webdriver.Chrome(executable_path=(chromedriver_data_dir if platform != 'win32' else
-                                                               str(chromedriver_data_dir) + ".exe"), options=options)
-        except WebDriverException as e:
-            logger.error(e)
-            raise RuntimeError("Не удалось запустить chromedriver")
-        self.parser = BasicParserImpl(self.webdriver, settings.parser.url,
-                                      settings.parser.webdriver_timeout,
-                                      settings.parser.photos_dir
-                                      )
-        self.user_logger = BasicLogInImpl(self.webdriver)
+                chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_path).absolute()
+                self.driver = webdriver.Chrome(executable_path=(chromedriver_data_dir if platform != 'win32' else
+                                                                str(chromedriver_data_dir) + ".exe"), options=options)
+            except WebDriverException as e:
+                logger.error(e)
+                raise RuntimeError("Не удалось запустить chromedriver")
+            self.parser = BasicParserImpl(self.driver, settings.parser.url,
+                                          settings.parser.webdriver_timeout,
+                                          settings.parser.photos_dir
+                                          )
+            self.user_logger = BasicLogInImpl(self.driver)
 
         async with get_session() as session:
             try:
@@ -75,6 +76,8 @@ class Parser:
             except Exception as e:
                 logger.error(e)
                 await session.rollback()
+                self.driver.quit()
+                self.driver = None
 
     async def start_parsing(self):
         while True:
@@ -85,7 +88,6 @@ class Parser:
                     await self.sender.send_data()
             finally:
                 await asyncio.sleep(settings.parser.wait_interval)
-                self.webdriver.quit()
 
     @staticmethod
     async def start():
@@ -93,4 +95,4 @@ class Parser:
         try:
             await parser.start_parsing()
         finally:
-            parser.webdriver.quit()
+            parser.driver.quit()
