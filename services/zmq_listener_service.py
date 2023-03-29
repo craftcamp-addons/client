@@ -84,35 +84,39 @@ class ZmqListenerService:
     async def start_listening(self):
         context = zmq_async.Context()
         socket = context.socket(zmq.REP)
-        self.logger.info(f"Начинаю слушать ipc://{self.comm_dir.absolute() / 'pipe'}")
 
-        with socket.bind(f"ipc://{self.comm_dir.absolute() / 'pipe'}"):
-            while True:
-                try:
-                    message = msgpack.unpackb((await socket.recv_multipart())[0])
-                    self.logger.debug(f"Получил сообщение: {message}")
-                    match message:
-                        case {"command": command, "data": data}:
-                            self.logger.debug("Сообщение с аргументами")
-                            if command == UPLOAD:
-                                await self.upload(data)
-                                await socket.send(msgpack.packb({"command": UPLOAD, "status": OK}))
-                                self.logger.debug("Загрузил номера")
-                            elif command == DOWNLOAD:
-                                await self.download(data['filename'], data['password'])
-                                await socket.send(msgpack.packb({"command": DOWNLOAD, "status": OK}))
-                                self.logger.debug(f"Выгрузил номера в {data['filename']}")
-                        case {"command": command}:
-                            self.logger.debug("Сообщение без аргументов")
-                            if command == STATUS:
-                                self.logger.debug("Статус")
-                                await socket.send(msgpack.packb((await self.status()).dict()))
-                                self.logger.debug("Отправил статус")
+        port = socket.bind_to_random_port(f"tcp://127.0.0.1", min_port=7000, max_port=7100)
+        self.logger.info(f"Начинаю слушать tcp://127.0.0.1:{port}")
+        with open(self.comm_dir.absolute() / "port", 'w') as port_file:
+            print(port, file=port_file, flush=True)
 
-                        case _:
-                            self.logger.warning("Не удалось распознать схему запроса")
-                            await socket.send(msgpack.packb({"status": ERR}))
-                            continue
-                except Exception as e:
-                    await socket.send(msgpack.packb({"status": ERR, "command": command}))
-                    self.logger.error(e)
+        message = {}
+        while True:
+            try:
+                message = msgpack.unpackb((await socket.recv_multipart())[0])
+                self.logger.debug(f"Получил сообщение: {message}")
+                match message:
+                    case {"command": command, "data": data}:
+                        self.logger.debug("Сообщение с аргументами")
+                        if command == UPLOAD:
+                            await self.upload(data)
+                            await socket.send(msgpack.packb({"command": UPLOAD, "status": OK}))
+                            self.logger.debug("Загрузил номера")
+                        elif command == DOWNLOAD:
+                            await self.download(data['filename'], data['password'])
+                            await socket.send(msgpack.packb({"command": DOWNLOAD, "status": OK}))
+                            self.logger.debug(f"Выгрузил номера в {data['filename']}")
+                    case {"command": command}:
+                        self.logger.debug("Сообщение без аргументов")
+                        if command == STATUS:
+                            self.logger.debug("Статус")
+                            await socket.send(msgpack.packb((await self.status()).dict()))
+                            self.logger.debug("Отправил статус")
+
+                    case _:
+                        self.logger.warning("Не удалось распознать схему запроса")
+                        await socket.send(msgpack.packb({"status": ERR}))
+                        continue
+            except Exception as e:
+                await socket.send(msgpack.packb({"status": ERR, "command": message}))
+                self.logger.error(e)
