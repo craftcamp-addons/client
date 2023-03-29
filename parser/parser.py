@@ -83,11 +83,12 @@ class Parser:
                     await self.sender.send_data()
             finally:
                 await asyncio.sleep(settings.parser.wait_interval)
+                self.webdriver.quit()
 
     @staticmethod
     async def start():
+        parser = Parser()
         try:
-            parser = Parser()
             await parser.start_parsing()
         finally:
             parser.webdriver.quit()
