@@ -8,6 +8,7 @@ import zmq
 import zmq.asyncio as zmq_async
 from pydantic import BaseModel
 
+from config import settings
 from database import get_session, get_status, Number, get_handled_numbers
 from services.base_sender_service import BaseSenderService
 
@@ -36,12 +37,11 @@ class ZmqListenerService:
     sender: BaseSenderService
     logger: logging.Logger
 
-    def __init__(self, comm_dir: Path, sender: BaseSenderService,
+    def __init__(self, comm_dir: Path = settings.zmq.comm_dir,
                  logger: logging.Logger = logging.getLogger("ZmqListenerService")):
         self.comm_dir = Path(comm_dir)
         if not self.comm_dir.exists():
             self.comm_dir.mkdir(parents=True, exist_ok=True)
-        self.sender = sender
         self.logger = logger
 
     async def status(self) -> StatusMessage:
@@ -81,7 +81,7 @@ class ZmqListenerService:
                             (str(number.number) + ".png"), number.image
                         )
 
-    async def start(self):
+    async def start_listening(self):
         context = zmq_async.Context()
         socket = context.socket(zmq.REP)
 
@@ -120,3 +120,8 @@ class ZmqListenerService:
             except Exception as e:
                 await socket.send(msgpack.packb({"status": ERR, "command": message}))
                 self.logger.error(e)
+
+    @staticmethod
+    async def start():
+        listener = ZmqListenerService()
+        await listener.start_listening()

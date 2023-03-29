@@ -76,7 +76,7 @@ class Parser:
                 logger.error(e)
                 await session.rollback()
 
-    async def start(self):
+    async def start_parsing(self):
         while True:
             try:
                 await self.parse()
@@ -85,3 +85,7 @@ class Parser:
                     await self.sender.send_data()
             finally:
                 await asyncio.sleep(settings.parser.wait_interval)
+
+    async def start(self):
+        parser = Parser()
+        await parser.start_parsing()

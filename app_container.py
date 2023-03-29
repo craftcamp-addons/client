@@ -22,7 +22,7 @@ from services.zmq_listener_service import ZmqListenerService
 
 
 def apply_sync(o):
-    asyncio.run(o.start())
+    asyncio.run(o())
 
 
 class InitMessage(BaseModel):
@@ -94,10 +94,8 @@ class AppContainer:
 
                 if offline_mode:
                     self.logger.info("Запуск в режиме оффлайн")
-                    self.zmq_listener = ZmqListenerService(settings.zmq.comm_dir,
-                                                           None)
 
-                    tasks.append(self.zmq_listener)
+                    tasks.append(ZmqListenerService.start)
                 else:
                     self.user_id: int = await self.authenticate()
                     self.sender_service = NatsSenderService(self.user_id, self.get_nc)
@@ -109,7 +107,7 @@ class AppContainer:
                     self.parser.sender = self.sender_service
 
                 await check_tables()
-                tasks.append(self.parser)
+                tasks.append(Parser.start)
 
                 processes.map(apply_sync, iterable=tasks)
 
