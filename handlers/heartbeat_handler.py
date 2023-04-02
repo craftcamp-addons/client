@@ -23,7 +23,9 @@ class HeartbeatHandler(BaseHandler):
     async def subscribe(self, user_id: int, nc: Callable[[], Awaitable[Client]]):
         self.nc = await nc()
         self.user_id = user_id
-        await self.nc.subscribe(subject=self.subject + str(user_id), cb=self.handle_message)
+        await self.nc.subscribe(
+            subject=self.subject + str(user_id), cb=self.handle_message
+        )
 
     async def handle(self, msg: Msg):
         ping = utils.unpack_msg(msg, Ping)

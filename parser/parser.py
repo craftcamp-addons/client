@@ -4,16 +4,16 @@ from pathlib import Path
 from sys import platform
 from typing import Protocol
 
+import xvfbwrapper
 from selenium import webdriver
 from selenium.common import WebDriverException
+from xvfbwrapper import Xvfb
 
 from config import settings
 from database import get_session, get_actual_number, Number
 from parser.basic_log_in_impl import BasicLogInImpl
 from parser.basic_parser_impl import BasicParserImpl
 from services.base_sender_service import BaseSenderService
-
-logger = logging.getLogger(__name__)
 
 
 class BaseParserImpl(Protocol):
@@ -27,6 +27,7 @@ class BaseLogInImpl(Protocol):
 
 
 class Parser:
+    display: Xvfb
     parser: BaseParserImpl
     user_logger: BaseLogInImpl
     sender: BaseSenderService | None = None
@@ -34,50 +35,72 @@ class Parser:
     driver: webdriver.Chrome | None = None
 
     whatsapp_logged_in: bool = False
+    logger: logging.Logger = logging.getLogger("Parser")
 
     async def parse(self):
         if self.driver is None:
+            self.display = xvfbwrapper.Xvfb()
+            self.display.start()
             try:
                 options = webdriver.ChromeOptions()
-                options.add_argument('--disable-dev-shm-usage')
-                options.add_argument('--allow-profiles-outside-user-dir')
+                options.add_argument("--disable-dev-shm-usage")
+                options.add_argument("--allow-profiles-outside-user-dir")
                 options.add_experimental_option("detach", True)
-                options.add_experimental_option('excludeSwitches', ['enable-logging'])
-                options.add_argument('--enable-profile-shortcut-manager')
-                chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_data_dir).absolute()
-                options.add_argument(f'--user-data-dir={chromedriver_data_dir / "user"}')
-                options.add_argument('--profile-directory=Profile 1')
+                options.add_experimental_option("excludeSwitches", ["enable-logging"])
+                options.add_argument("--enable-profile-shortcut-manager")
+                chromedriver_data_dir: Path = Path(
+                    settings.selenium.chromedriver_data_dir
+                ).absolute()
+                options.add_argument(
+                    f'--user-data-dir={chromedriver_data_dir / "user"}'
+                )
+                options.add_argument("--profile-directory=Profile 1")
 
-                chromedriver_data_dir: Path = Path(settings.selenium.chromedriver_path).absolute()
-                self.driver = webdriver.Chrome(executable_path=(chromedriver_data_dir if platform != 'win32' else
-                                                                str(chromedriver_data_dir) + ".exe"), options=options)
+                chromedriver_data_dir: Path = Path(
+                    settings.selenium.chromedriver_path
+                ).absolute()
+                self.driver = webdriver.Chrome(
+                    executable_path=(
+                        chromedriver_data_dir
+                        if platform != "win32"
+                        else str(chromedriver_data_dir) + ".exe"
+                    ),
+                    options=options,
+                )
             except WebDriverException as e:
-                logger.error(e)
+                self.logger.error(e)
                 raise RuntimeError("Не удалось запустить chromedriver")
-            self.parser = BasicParserImpl(self.driver, settings.parser.url,
-                                          settings.parser.webdriver_timeout,
-                                          settings.parser.photos_dir
-                                          )
+            self.parser = BasicParserImpl(
+                self.driver,
+                settings.parser.url,
+                settings.parser.webdriver_timeout,
+                settings.parser.photos_dir,
+            )
             self.user_logger = BasicLogInImpl(self.driver)
 
         async with get_session() as session:
             try:
                 while not self.whatsapp_logged_in:
-                    logger.info("Пользователь не авторизован. Ожидаю авторизацию...")
-                    self.whatsapp_logged_in = self.user_logger.log_in(settings.selenium.log_in_timeout)
+                    self.logger.info(
+                        "Пользователь не авторизован. Ожидаю авторизацию..."
+                    )
+                    self.whatsapp_logged_in = self.user_logger.log_in(
+                        settings.selenium.log_in_timeout
+                    )
 
                 actual_number: Number | None = await get_actual_number(session)
                 if actual_number is None:
                     return
 
-                logger.info(f"Парсинг номера: {actual_number.number}")
+                self.logger.info(f"Парсинг номера: {actual_number.number}")
                 await self.parser.parse(actual_number)
                 await session.commit()
             except Exception as e:
-                logger.error(e)
+                self.logger.error(e)
                 await session.rollback()
                 self.driver.quit()
                 self.driver = None
+                self.display.stop()
 
     async def start_parsing(self):
         while True:
@@ -95,4 +118,6 @@ class Parser:
         try:
             await parser.start_parsing()
         finally:
-            parser.driver.quit()
+            print("Отъебнуло")
+            if parser.driver is not None:
+                parser.driver.quit()

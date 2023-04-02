@@ -11,3 +11,5 @@ aiosqlite
 aiosqlite3
 sqlalchemy_utils
 pyzmq~=25.0.2
+xvfbwrapper==0.2.9
+black

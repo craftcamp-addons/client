@@ -25,30 +25,60 @@ async def get_session() -> AsyncSession:
 
 
 # TODO: Вынести в отдельный файл. Оформить так же все запросы (по крайней мере типовые)
-async def get_actual_number(session: AsyncSession, offline: bool = False, limit: int = 1) -> Number | None:
-    return (await session.execute(
-        select(Number).where(and_(
-            or_(Number.status == NumberStatus.CREATED, Number.status == NumberStatus.SECONDCHECK),
-            (Number.server_id is not None if not offline else True))).order_by(
-            Number.status).limit(limit)
-    )).scalar_one_or_none()
+async def get_actual_number(
+    session: AsyncSession, offline: bool = False, limit: int = 1
+) -> Number | None:
+    return (
+        await session.execute(
+            select(Number)
+            .where(
+                and_(
+                    or_(
+                        Number.status == NumberStatus.CREATED,
+                        Number.status == NumberStatus.SECONDCHECK,
+                    ),
+                    (Number.server_id is not None if not offline else True),
+                )
+            )
+            .order_by(Number.status)
+            .limit(limit)
+        )
+    ).scalar_one_or_none()
 
 
-async def get_handled_numbers(session: AsyncSession, limit: int = 1_000_000_000, offline: bool = False) -> Sequence[
-    Number
-]:
-    return (await session.execute(
-        select(Number).where(and_(
-            or_(Number.status == NumberStatus.COMPLETED, Number.status == NumberStatus.ERROR),
-            (Number.server_id is not None if not offline else True))).limit(limit)
-    )).scalars().all()
+async def get_handled_numbers(
+    session: AsyncSession, limit: int = 1_000_000_000, offline: bool = False
+) -> Sequence[Number]:
+    return (
+        (
+            await session.execute(
+                select(Number)
+                .where(
+                    and_(
+                        or_(
+                            Number.status == NumberStatus.COMPLETED,
+                            Number.status == NumberStatus.ERROR,
+                        ),
+                        (Number.server_id is not None if not offline else True),
+                    )
+                )
+                .limit(limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
 
 
 async def get_status(session: AsyncSession) -> Row:
-    return (await session.execute(
-        text("""select
+    return (
+        await session.execute(
+            text(
+                """select
             (select count(1) from numbers where server_id is NULL),
             (select count(1) from numbers where server_id is NULL and status like 'COMPLETED'),
             (select count(1) from numbers where server_id is NULL and status like 'ERROR')
-        """)
-    )).one()
+        """
+            )
+        )
+    ).one()

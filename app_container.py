@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from multiprocessing import Pool, Process
+from multiprocessing import Process
 from typing import Optional
 
 import nats.errors
@@ -42,7 +42,7 @@ class AppContainer:
     def __init__(self):
         self.handlers = [
             DataHandler(logging.getLogger("DataHandler")),
-            HeartbeatHandler(logging.getLogger("HeartbeatHandler"))
+            HeartbeatHandler(logging.getLogger("HeartbeatHandler")),
         ]
 
     async def connect(self):
@@ -58,11 +58,11 @@ class AppContainer:
 
     async def authenticate(self) -> int:
         await self.ping_server()
-        init_response: Msg | None = await \
-            self.nc.request(subject='server.init',
-                            payload=utils.pack_msg(InitMessage(username=settings.name)),
-                            timeout=10
-                            )
+        init_response: Msg | None = await self.nc.request(
+            subject="server.init",
+            payload=utils.pack_msg(InitMessage(username=settings.name)),
+            timeout=10,
+        )
 
         init_message = utils.unpack_msg(init_response, InitMessage)
         if init_message is None:
@@ -101,7 +101,10 @@ class AppContainer:
                     self.user_id: int = await self.authenticate()
                     self.sender_service = NatsSenderService(self.user_id, self.get_nc)
                     await asyncio.gather(
-                        *[handler.subscribe(self.user_id, self.get_nc) for handler in self.handlers]
+                        *[
+                            handler.subscribe(self.user_id, self.get_nc)
+                            for handler in self.handlers
+                        ]
                     )
                     self.logger.info("Подписался на обновления, запуск сервисов...")
 

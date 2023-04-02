@@ -14,7 +14,7 @@ class NumberStatus(enum.Enum):
 
 
 class Number(Base):
-    __tablename__ = 'numbers'
+    __tablename__ = "numbers"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     server_id: Mapped[Optional[int]] = mapped_column(nullable=True)

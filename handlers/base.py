@@ -28,6 +28,8 @@ class BaseHandler(ABC):
             await self.handle(msg)
             await msg.ack()
         except ValidationError as e:
-            self.logger.error(f"Ошибка валидации при обработке сообщения: {len(msg.data)} - {e}")
+            self.logger.error(
+                f"Ошибка валидации при обработке сообщения: {len(msg.data)} - {e}"
+            )
         except Exception as e:
             self.logger.error(f"Ошибка при обработке сообщения: {len(msg.data)} - {e}")

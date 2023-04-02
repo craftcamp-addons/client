@@ -24,8 +24,7 @@ class DataHandler(BaseHandler):
 
     async def subscribe(self, user_id: int, nc: Callable[[], Awaitable[Client]]):
         await (await nc()).subscribe(
-            subject=self.subject + str(user_id),
-            cb=self.handle_message
+            subject=self.subject + str(user_id), cb=self.handle_message
         )
 
     async def handle(self, msg: Msg):

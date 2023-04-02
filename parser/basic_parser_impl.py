@@ -11,7 +11,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from database import Number, NumberStatus
-from parser.xpaths import error_button_xpath, on_profile_second_xpath, business_photo_xpath, photo_xpath
+from parser.xpaths import (
+    error_button_xpath,
+    on_profile_second_xpath,
+    business_photo_xpath,
+    photo_xpath,
+)
 
 
 class BasicParserImpl:
@@ -21,8 +26,14 @@ class BasicParserImpl:
     logger: logging.Logger
     photos_dir: Path
 
-    def __init__(self, driver: Chrome, url: str, webdriver_timeout: int, photos_dir: str,
-                 logger: logging.Logger = logging.getLogger("Parser")):
+    def __init__(
+        self,
+        driver: Chrome,
+        url: str,
+        webdriver_timeout: int,
+        photos_dir: str,
+        logger: logging.Logger = logging.getLogger("Parser"),
+    ):
         super(BasicParserImpl, self).__init__()
         self.url = url
         self.wait_timeout = webdriver_timeout
@@ -36,7 +47,8 @@ class BasicParserImpl:
         # image = Image.open(self.photos_dir / (number.number + ".png"))
         image_bytes = BytesIO()
         image.resize((image.size[0] // 2, image.size[1] // 2), Image.ANTIALIAS).save(
-            image_bytes, "PNG", optimise=True, quality=50)
+            image_bytes, "PNG", optimise=True, quality=50
+        )
 
         number.image = image_bytes.getvalue()
         self.logger.info(f"Фотография {number.number}.png сохранена")
@@ -45,30 +57,35 @@ class BasicParserImpl:
         """
         1. Parse number
         2. Set status of the parsing accordingly to the rule:
-            Parsing status: 0 - not started, 1 - parsing, 2 - finished, 3 - error. Secondcheck falls to 0 status
+            Parsing status: 0 - not started, 1 - parsing, 2 - finished, 3 - error. Secondcheck falls to its own status
         """
         try:
             self.webdriver.get(self.url.format(number.number))
             try:
                 WebDriverWait(self.webdriver, self.wait_timeout).until(
-                    EC.element_to_be_clickable((By.XPATH, error_button_xpath)))
+                    EC.element_to_be_clickable((By.XPATH, error_button_xpath))
+                )
                 number.status = NumberStatus.ERROR
             except TimeoutException:
                 profile_button = WebDriverWait(self.webdriver, self.wait_timeout).until(
-                    EC.element_to_be_clickable((By.CLASS_NAME, '_2YnE3')))
+                    EC.element_to_be_clickable((By.CLASS_NAME, "_2YnE3"))
+                )
                 profile_button.click()
 
                 try:
                     second_profile_button = self.webdriver.find_element(
-                        By.XPATH, on_profile_second_xpath)
+                        By.XPATH, on_profile_second_xpath
+                    )
                     second_profile_button.click()
                 except NoSuchElementException:
                     second_profile_button = self.webdriver.find_element(
-                        By.XPATH, business_photo_xpath)
+                        By.XPATH, business_photo_xpath
+                    )
                     second_profile_button.click()
 
-                photo = WebDriverWait(self.webdriver, self.wait_timeout / 2).until(
-                    EC.element_to_be_clickable((By.XPATH, photo_xpath)))
+                photo = WebDriverWait(self.webdriver, self.wait_timeout).until(
+                    EC.element_to_be_clickable((By.XPATH, photo_xpath))
+                )
                 await self.save_photo(photo, number)
                 number.status = NumberStatus.COMPLETED
 

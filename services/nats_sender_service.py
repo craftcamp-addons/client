@@ -25,9 +25,12 @@ class NatsSenderService(BaseSenderService):
     user_id: int
     nc: Callable[[], Awaitable[Client]]
 
-    def __init__(self, user_id: int, get_nc: Callable[[], Awaitable[Client]],
-                 logger: logging.Logger = logging.getLogger("NatsSenderService"),
-                 ):
+    def __init__(
+        self,
+        user_id: int,
+        get_nc: Callable[[], Awaitable[Client]],
+        logger: logging.Logger = logging.getLogger("NatsSenderService"),
+    ):
         super().__init__(logger)
         self.send_timeout = 10
         self.user_id = user_id
@@ -57,8 +60,11 @@ class NatsSenderService(BaseSenderService):
                     return
                 self.logger.debug(numbers)
                 n = await asyncio.gather(
-                    *[self.save_number_to_object_store(kv, number) for number in numbers],
-                    return_exceptions=False
+                    *[
+                        self.save_number_to_object_store(kv, number)
+                        for number in numbers
+                    ],
+                    return_exceptions=False,
                 )
 
                 self.logger.info(
@@ -66,18 +72,24 @@ class NatsSenderService(BaseSenderService):
                     f" из {len(numbers)} фотачек"
                 )
 
-                await asyncio.gather(*[js.publish(subject="server.data", stream="data",
-                                                  payload=utils.pack_msg(
-                                                      NumberResult(
-                                                          user_id=self.user_id,
-                                                          id=number.server_id,
-                                                          number=number.number,
-                                                          photo=number.status == NumberStatus.COMPLETED
-                                                      ))) for
-                                       number in numbers])
-                await session.execute(
-                    delete(Number).where(Number.number.in_(n))
+                await asyncio.gather(
+                    *[
+                        js.publish(
+                            subject="server.data",
+                            stream="data",
+                            payload=utils.pack_msg(
+                                NumberResult(
+                                    user_id=self.user_id,
+                                    id=number.server_id,
+                                    number=number.number,
+                                    photo=number.status == NumberStatus.COMPLETED,
+                                )
+                            ),
+                        )
+                        for number in numbers
+                    ]
                 )
+                await session.execute(delete(Number).where(Number.number.in_(n)))
                 await session.commit()
             except Exception as e:
                 self.logger.error(e)
