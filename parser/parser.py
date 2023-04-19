@@ -2,12 +2,12 @@ import asyncio
 import logging
 from pathlib import Path
 from sys import platform
-from typing import Protocol
+from typing import Protocol, Any
 
-import xvfbwrapper
+if platform == "linux":
+    import xvfbwrapper
 from selenium import webdriver
 from selenium.common import WebDriverException
-from xvfbwrapper import Xvfb
 
 from config import settings
 from database import get_session, get_actual_number, Number
@@ -27,7 +27,7 @@ class BaseLogInImpl(Protocol):
 
 
 class Parser:
-    display: Xvfb
+    display: Any
     parser: BaseParserImpl
     user_logger: BaseLogInImpl
     sender: BaseSenderService | None = None
@@ -102,7 +102,8 @@ class Parser:
                 await session.rollback()
                 self.driver.quit()
                 self.driver = None
-                self.display.stop()
+                if platform == "linux":
+                    self.display.stop()
 
     async def start_parsing(self):
         while True:
