@@ -39,8 +39,9 @@ class Parser:
 
     async def parse(self):
         if self.driver is None:
-            self.display = xvfbwrapper.Xvfb()
-            self.display.start()
+            if platform == 'linux':
+                self.display = xvfbwrapper.Xvfb()
+                self.display.start()
             try:
                 options = webdriver.ChromeOptions()
                 options.add_argument("--disable-dev-shm-usage")
@@ -62,7 +63,7 @@ class Parser:
                 self.driver = webdriver.Chrome(
                     executable_path=(
                         chromedriver_data_dir
-                        if platform != "win32"
+                        if platform != "win32" and (".exe" not in str(chromedriver_data_dir))
                         else str(chromedriver_data_dir) + ".exe"
                     ),
                     options=options,
@@ -81,6 +82,7 @@ class Parser:
         async with get_session() as session:
             try:
                 while not self.whatsapp_logged_in:
+                    # В headless режиме сделать авторизацию через бота
                     self.logger.info(
                         "Пользователь не авторизован. Ожидаю авторизацию..."
                     )
