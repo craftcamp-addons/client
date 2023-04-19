@@ -1,6 +1,6 @@
 {
   "zmq": {
-    "comm_dir": "comm"
+    "port": 4095
   },
   "database": {
     "url": "sqlite+aiosqlite:///database.sqlite"
