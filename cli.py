@@ -1,10 +1,10 @@
 import contextlib
 import logging
 import optparse
-import os
 import re
 from pathlib import Path
 from typing import Iterator, Optional
+from config import settings
 
 import msgpack
 import zmq
@@ -32,19 +32,7 @@ class ResponseModel(BaseModel):
 
 @contextlib.contextmanager
 def create_socket(ctx: zmq.Context) -> Iterator[zmq.Socket]:
-    comm_dir = Path(os.getcwd()) / "comm"
-    if not comm_dir.exists() or not (comm_dir / "port").exists():
-        raise FileNotFoundError(
-            "Пожалуйста, запустите парсер и поместите данный файл в папку с парсером"
-        )
-
-    port: int = -1
-    try:
-        port = int((comm_dir / "port").read_text())
-    except Exception:
-        raise RuntimeError(
-            f"Пожалуйста, не трогайте файл {comm_dir.absolute() / 'port'}"
-        )
+    port: int = settings.zmq.port
     socket = ctx.socket(zmq.REQ)
     socket.set(zmq.RCVTIMEO, 10000)
     socket.set(zmq.SNDTIMEO, 10000)
