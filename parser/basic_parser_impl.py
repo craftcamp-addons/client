@@ -15,7 +15,7 @@ from parser.xpaths import (
     error_button_xpath,
     on_profile_second_xpath,
     business_photo_xpath,
-    photo_xpath,
+    photo_xpath, profile_button_xpath,
 )
 
 
@@ -68,7 +68,7 @@ class BasicParserImpl:
                 number.status = NumberStatus.ERROR
             except TimeoutException:
                 profile_button = WebDriverWait(self.webdriver, self.wait_timeout).until(
-                    EC.element_to_be_clickable((By.CLASS_NAME, "_2YnE3"))
+                    EC.element_to_be_clickable((By.XPATH, profile_button_xpath))
                 )
                 profile_button.click()
 

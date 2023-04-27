@@ -1,8 +1,10 @@
+profile_button_xpath = '//*[@id="main"]/header'
+
 user_header_xpath = '//*[@id="app"]/div/div/div[4]/header/div[1]/div/img'
 
 # xpathOnProfileSecond
 on_profile_second_xpath = (
-    '//*[@id="app"]/div/div/div[6]/span/div/span/div/div/section/div[1]/div[1]/div/div'
+    '//*[@id="app"]/div/div/div[6]/span/div/span/div/div/section/div[1]/div[1]/div/img'
 )
 
 # xpathPhoto
