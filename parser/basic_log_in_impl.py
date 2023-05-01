@@ -1,3 +1,4 @@
+import base64
 import logging
 
 from selenium import webdriver
@@ -21,8 +22,13 @@ class BasicLogInImpl:
             qr_code = WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located((By.XPATH, qr_code_xpath))
             )
+            canvas_base64 = self.driver.execute_script("return arguments[0].toDataURL('image/png').substring(21);",
+                                                       qr_code)
+            # decode
+            canvas_png = base64.b64decode(canvas_base64)
+            # save to a file
             with open('Enter_QRcode.png', 'wb') as file:
-                file.write(qr_code.screenshot_as_png)
+                file.write(canvas_png)
             WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located((By.XPATH, user_header_xpath))
             )
