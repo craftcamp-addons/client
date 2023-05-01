@@ -45,6 +45,8 @@ class Parser:
                     self.display.start()
                 try:
                     options = webdriver.ChromeOptions()
+                    if platform != "linux":
+                        options.add_argument("--headless")
                     options.add_argument("--disable-dev-shm-usage")
                     options.add_argument("--allow-profiles-outside-user-dir")
                     options.add_experimental_option("detach", True)
