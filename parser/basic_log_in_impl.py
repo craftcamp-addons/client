@@ -18,6 +18,8 @@ class BasicLogInImpl:
     def log_in(self, timeout: int) -> bool:
         self.driver.get("https://web.whatsapp.com")
         try:
+            with open('Enter_QRcode.png', 'wb') as file:
+                file.write(self.driver.get_screenshot_as_png())
             WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located((By.XPATH, user_header_xpath))
             )
