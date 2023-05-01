@@ -1,3 +1,5 @@
+qr_code_xpath = '//*[@id="app"]/div/div/div[3]/div[1]/div/div/div[2]/div/canvas'
+
 profile_button_xpath = '//*[@id="main"]/header'
 
 user_header_xpath = '//*[@id="app"]/div/div/div[4]/header/div[1]/div/img'
