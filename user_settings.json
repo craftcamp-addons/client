@@ -9,6 +9,7 @@
     "chromedriver_path": "chromedriver",
     "chromedriver_data_dir": "chromedriver_data",
     "log_in_timeout": 90,
+    "log_in_screen_filename": "log_in_screen_filename.png",
     "headless": true
   }
 }

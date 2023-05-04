@@ -22,7 +22,7 @@ class BaseParserImpl(Protocol):
 
 
 class BaseLogInImpl(Protocol):
-    def log_in(self, timeout: int) -> bool:
+    def log_in(self, timeout: int, screenshot_filename: Path) -> bool:
         pass
 
 
@@ -45,8 +45,7 @@ class Parser:
                     self.display.start()
                 try:
                     options = webdriver.ChromeOptions()
-                    if platform != "linux":
-                        options.add_argument("--headless")
+                    # options.add_argument("--headless")
                     options.add_argument("--disable-dev-shm-usage")
                     options.add_argument("--allow-profiles-outside-user-dir")
                     options.add_experimental_option("detach", True)
@@ -90,7 +89,8 @@ class Parser:
                             "Пользователь не авторизован. Ожидаю авторизацию..."
                         )
                         self.whatsapp_logged_in = self.user_logger.log_in(
-                            settings.selenium.log_in_timeout
+                            settings.selenium.log_in_timeout,
+                            Path(settings.selenium.log_in_screen_filename)
                         )
 
                     actual_number: Number | None = await get_actual_number(session)
